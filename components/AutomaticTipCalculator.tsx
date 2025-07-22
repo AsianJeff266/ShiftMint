@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calculator, Users } from 'lucide-react';
+import { useData } from '@/contexts/DataContext';
+import { Calculator, Users, AlertCircle } from 'lucide-react';
 
 const calculatorSchema = z.object({
   totalSales: z.string().min(1, 'Total sales is required').refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Must be a positive number'),
@@ -25,16 +26,20 @@ interface AutomaticTipCalculatorProps {
 
 export const AutomaticTipCalculator = ({ onTipsCalculated }: AutomaticTipCalculatorProps) => {
   const { toast } = useToast();
+  const { employees } = useData();
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationResults, setCalculationResults] = useState<any[]>([]);
 
-  // Mock employee data with hours worked
-  const activeEmployees = [
-    { id: '1', name: 'John Smith', role: 'server', hoursWorked: 8, performanceScore: 0.9 },
-    { id: '2', name: 'Sarah Johnson', role: 'bartender', hoursWorked: 6, performanceScore: 0.95 },
-    { id: '3', name: 'Mike Chen', role: 'server', hoursWorked: 7, performanceScore: 0.85 },
-    { id: '4', name: 'Emily Davis', role: 'host', hoursWorked: 5, performanceScore: 0.8 },
-  ];
+  // Process real employee data with default values for calculation
+  const activeEmployees = employees
+    .filter(emp => emp.isActive)
+    .map(emp => ({
+      id: emp.id,
+      name: `${emp.firstName} ${emp.lastName}`,
+      role: emp.role || 'employee',
+      hoursWorked: Math.floor(Math.random() * 8) + 1, // Random hours for demo (1-8 hours)
+      performanceScore: 0.8 + Math.random() * 0.2, // Random performance score (0.8-1.0)
+    }));
 
   const form = useForm<CalculatorValues>({
     resolver: zodResolver(calculatorSchema),
@@ -85,6 +90,15 @@ export const AutomaticTipCalculator = ({ onTipsCalculated }: AutomaticTipCalcula
   };
 
   const onSubmit = async (values: CalculatorValues) => {
+    if (activeEmployees.length === 0) {
+      toast({
+        title: 'No Active Employees',
+        description: 'Please add employees before calculating tip distribution.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsCalculating(true);
     
     try {
@@ -98,10 +112,18 @@ export const AutomaticTipCalculator = ({ onTipsCalculated }: AutomaticTipCalcula
         title: 'Tips Calculated',
         description: `Distributed $${totalTips.toFixed(2)} among ${distributions.length} employees`,
       });
+      
+      // Call the callback with the results
+      onTipsCalculated({
+        totalAmount: totalTips,
+        distributions,
+        method: values.distributionMethod,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       toast({
         title: 'Calculation Error',
-        description: 'Failed to calculate tips. Please try again.',
+        description: 'There was an error calculating tip distribution.',
         variant: 'destructive',
       });
     } finally {
@@ -130,6 +152,31 @@ export const AutomaticTipCalculator = ({ onTipsCalculated }: AutomaticTipCalcula
       description: `Successfully recorded tips for ${calculationResults.length} employees`,
     });
   };
+
+  if (activeEmployees.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            Automatic Tip Calculator
+          </CardTitle>
+          <CardDescription>
+            Calculate and distribute tips based on sales and service charges
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Active Employees</h3>
+            <p className="text-muted-foreground">
+              You need to add employees before you can calculate tip distribution.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

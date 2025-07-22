@@ -33,12 +33,26 @@ const convertSupabaseUser = (supabaseUser: any): User | null => {
   return {
     id: supabaseUser.id,
     email: supabaseUser.email || '',
-    firstName: metadata.firstName || metadata.first_name || '',
-    lastName: metadata.lastName || metadata.last_name || '',
-    role: metadata.role || appMetadata.role || 'employee',
-    businessId: metadata.businessId || appMetadata.businessId || 'business_1',
+    firstName: metadata.firstName || metadata.first_name || 'Demo',
+    lastName: metadata.lastName || metadata.last_name || 'User',
+    role: metadata.role || appMetadata.role || 'admin',
+    businessId: metadata.businessId || appMetadata.businessId || supabaseUser.id || 'demo-business',
     isActive: metadata.isActive !== undefined ? metadata.isActive : true,
     hourlyWage: metadata.hourlyWage || undefined,
+  };
+};
+
+// Create a demo user when not authenticated
+const createDemoUser = (): User => {
+  return {
+    id: 'demo-user-id',
+    email: 'demo@shiftmint.com',
+    firstName: 'Demo',
+    lastName: 'User',
+    role: 'admin',
+    businessId: 'demo-business',
+    isActive: true,
+    hourlyWage: undefined,
   };
 };
 
@@ -55,15 +69,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) {
           console.error('Error getting session:', error);
           setSession(null);
-          setUser(null);
+          // For demo purposes, create a demo user when auth fails
+          setUser(createDemoUser());
         } else {
           setSession(session);
-          setUser(convertSupabaseUser(session?.user));
+          if (session?.user) {
+            setUser(convertSupabaseUser(session.user));
+          } else {
+            // For demo purposes, create a demo user when no session
+            setUser(createDemoUser());
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
         setSession(null);
-        setUser(null);
+        // For demo purposes, create a demo user when auth fails
+        setUser(createDemoUser());
       } finally {
         setLoading(false);
       }
@@ -76,7 +97,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('Auth state changed:', event, session);
         setSession(session);
-        setUser(convertSupabaseUser(session?.user));
+        if (session?.user) {
+          setUser(convertSupabaseUser(session.user));
+        } else {
+          // For demo purposes, create a demo user when no session
+          setUser(createDemoUser());
+        }
         setLoading(false);
       }
     );

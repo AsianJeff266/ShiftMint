@@ -57,6 +57,10 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
@@ -94,10 +98,12 @@ export const Layout: React.FC = () => {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
